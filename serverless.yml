@@ -1,0 +1,67 @@
+service: aws-node-typescript # NOTE: update this with your service name
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+
+
+custom:
+  functionsBasePath: src/lambdas
+  dynamodb:
+    stages:
+      - dev
+      - local
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+functions:
+  todo:
+    handler: todo.handler
+    events:
+      - http:
+          method: post
+          path: todo/{userId}
+          cors: true
+      - http:
+          method: get
+          path: todo/{userId}
+          cors: true
+
+
+      
+resources:
+  Resources:
+    dbTODO:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: todoTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+        GlobalSecondaryIndexes:
+          - IndexName: userIdIndex
+            KeySchema:
+              - AttributeName: user_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: 'ALL'
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+plugins:
+  - serverless-functions-base-path
+  - serverless-dynamodb-local
+  - serverless-esbuild
+  - serverless-offline
